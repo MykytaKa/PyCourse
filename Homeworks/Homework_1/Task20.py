@@ -6,72 +6,75 @@
 # Матрица А имеет седловую точку Аij, если Аij является минимальным элементом в i-й строке и максимальным в j-м столбце
 import random
 
-length = 5
-height = 8
+LENGTH = 5
+HEIGHT = 8
 
-minValue = -5
-maxValue = 5
+MINVALUE = -5
+MAXVALUE = 5
 
 
 def create_array():
-    tmpmatrix = [0] * length
-    for i in range(length):
-        tmpmatrix[i] = [0] * height
-    return tmpmatrix
+    tmp_matrix = [[element for element in range(HEIGHT)] for _ in range(LENGTH)]
+    return tmp_matrix
 
 
-def fill_array(tmatrix):
-    for row in range(length):
-        for col in range(height):
-            tmatrix[row][col] = random.randint(minValue, maxValue)
-    return tmatrix
+def fill_array(t_matrix):
+    for row in range(LENGTH):
+        for col in range(HEIGHT):
+            t_matrix[row][col] = random.randint(MINVALUE, MAXVALUE)
+    return t_matrix
 
 
 def print_array(matrix):
+    matrix_text = ''
     for row in matrix:
         for col in row:
-            print(col, end=' ')
-        print()
-    print()
+            matrix_text += str(col) + ' '
+        matrix_text += '\n'
+    print(matrix_text)
 
 
 def calc_negative_numbers(matrix):
     amount = 0
     is_contain_null = False
-    for i in range(length):
-        for j in range(height):
-            if matrix[i][j] < 0:
-                amount += 1
-            if matrix[i][j] == 0:
-                is_contain_null = True
-        if is_contain_null:
-            print("Row", i + 1, "has", amount, "negative elements")
-        else:
-            print("There are no null elements in row", i)
+    for i in range(LENGTH):
+        for j in range(HEIGHT):
+            amount += matrix[i][j] < 0
+            is_contain_null = matrix[i][j] == 0
+        text = print(f'Row {i + 1} has {amount} negative elements') if is_contain_null else print(f'There are no null elements in row {i + 1}')
+        # if is_contain_null:
+        #     print(f'Row {i + 1} has {amount} negative elements')
+        # else:
+        #     print(f'There are no null elements in row {i + 1}')
         is_contain_null = False
         amount = 0
-    print()
+    print('')
 
 
 def find_sadle_points(matrix):
-    for i in range(length):
-        for j in range(height):
+    for i in range(LENGTH):
+        for j in range(HEIGHT):
             minimal_in_row = matrix[i][j]
             minimal_in_col = matrix[i][j]
+
             min_row_i = i
             min_row_j = j
-            for k in range(height):
+
+            for k in range(HEIGHT):
                 if matrix[i][k] < minimal_in_row:
                     minimal_in_row = matrix[i][k]
                     min_row_j = k
+
             min_col_i = i
             min_col_j = j
-            for m in range(length):
+
+            for m in range(LENGTH):
                 if matrix[m][j] < minimal_in_col:
                     minimal_in_col = matrix[m][j]
                     min_col_i = m
+
             if (minimal_in_row == minimal_in_col) and (min_row_i == min_col_i) and (min_row_j == min_col_j):
-                print("Element in", i + 1, "row and", j + 1, "column is sadle point")
+                print(f'Element in {i + 1} row and {j + 1} column is sadle point')
 
 
 matrix = create_array()

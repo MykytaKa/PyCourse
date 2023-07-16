@@ -5,63 +5,63 @@
 # change
 import random
 
-length = 5
-height = 5
+LENGTH = 5
+HEIGHT = 5
 
-minValue = 0
-maxValue = 5
+MINVALUE = 0
+MAXVALUE = 5
 
 
 def create_array():
-    tmpmatrix = [0] * length
-    for i in range(length):
-        tmpmatrix[i] = [0] * height
-    return tmpmatrix
+    tmp_matrix = [[element for element in range(HEIGHT)] for _ in range(LENGTH)]
+    return tmp_matrix
 
 
-def fill_array(tmatrix):
-    for row in range(length):
-        for col in range(height):
-            tmatrix[row][col] = random.randint(minValue, maxValue)
-    return tmatrix
+def fill_array(t_matrix):
+    for row in range(LENGTH):
+        for col in range(HEIGHT):
+            t_matrix[row][col] = random.randint(MINVALUE, MAXVALUE)
+    return t_matrix
 
 
 def print_array(matrix):
+    matrix_text = ''
     for row in matrix:
         for col in row:
-            print(col, end=' ')
-        print()
+            matrix_text += str(col) + ' '
+        matrix_text += '\n'
+    print(matrix_text)
 
 
 def calc_sum(matrix):
-    sum = 0
-    for i in range(length):
-        for j in range(height):
+    sum_of_modules = 0
+    for i in range(LENGTH):
+        for j in range(HEIGHT):
             if i < j:
-                sum += matrix[i][j]
-    print("Sum:", sum)
+                sum_of_modules += matrix[i][j]
+    print(f'Sum: {sum_of_modules}')
 
 
 def calc_local_minimum(matrix):
     amount_of_minimums = 0
-    for i in range(length):
-        for j in range(height):
+    for i in range(LENGTH):
+        for j in range(HEIGHT):
             row_start = i - 1 if i != 0 else i
             col_start = j - 1 if j != 0 else j
             minimum = matrix[i][j]
             is_number_minimum = True
             for k in range(row_start, row_start + 3):
-                if k == height:
+                if k == HEIGHT:
                     break
                 for m in range(col_start, col_start + 3):
-                    if m == length:
+                    if m == LENGTH:
                         break
                     if minimum > matrix[k][m]:
                         is_number_minimum = False
             if is_number_minimum:
-                print("Local mimimum =", minimum ,"(", i, ")", "(", j, ")")
+                print(f'Local mimimum = {minimum} ({i}) ({j})')
                 amount_of_minimums += 1
-    print("Amount of local minimums:", amount_of_minimums)
+    print(f'Amount of local minimums: {amount_of_minimums}')
 
 
 matrix = create_array()
