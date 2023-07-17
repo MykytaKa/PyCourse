@@ -14,8 +14,7 @@ MAXVALUE = 5
 
 
 def create_array():
-    tmp_matrix = [[element for element in range(HEIGHT)] for _ in range(LENGTH)]
-    return tmp_matrix
+    return [[element for element in range(HEIGHT)] for _ in range(LENGTH)]
 
 
 def fill_array(t_matrix):
@@ -41,11 +40,10 @@ def calc_negative_numbers(matrix):
         for j in range(HEIGHT):
             amount += matrix[i][j] < 0
             is_contain_null = matrix[i][j] == 0
-        text = print(f'Row {i + 1} has {amount} negative elements') if is_contain_null else print(f'There are no null elements in row {i + 1}')
-        # if is_contain_null:
-        #     print(f'Row {i + 1} has {amount} negative elements')
-        # else:
-        #     print(f'There are no null elements in row {i + 1}')
+        if is_contain_null:
+            print(f'Row {i + 1} has {amount} negative elements')
+        else:
+            print(f'There are no null elements in row {i + 1}')
         is_contain_null = False
         amount = 0
     print('')

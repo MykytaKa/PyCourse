@@ -13,8 +13,7 @@ MAXVALUE = 5
 
 
 def create_array():
-    tmp_matrix = [[element for element in range(HEIGHT)] for _ in range(LENGTH)]
-    return tmp_matrix
+    return [[element for element in range(HEIGHT)] for _ in range(LENGTH)]
 
 
 def fill_array(t_matrix):
