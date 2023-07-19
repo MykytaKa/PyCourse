@@ -1,5 +1,6 @@
 import requests as re
 import csv
+import copy
 
 class CinemaUser:
     headers = {
@@ -45,6 +46,12 @@ class CinemaUser:
         for film in information['results']:
             if film['overview'].find(find_text) > 0:
                 print(film['original_title'])
+
+    def print_genres(self):
+        genre_url = 'https://api.themoviedb.org/3/genre/movie/list?language=en'
+        genre_response = re.get(genre_url, headers=self.headers)
+        genre_information = genre_response.json()
+        print(genre_information['genres'])
 
     def delete_movies_with_genre(self, deleted_genre):
         url = f'https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&sort_by=popularity.desc&page={1}'
@@ -93,24 +100,23 @@ class CinemaUser:
         response = re.get(url, headers=self.headers)
         information = response.json()
         movies = information['results']
+        movies_copy = copy.deepcopy(movies)
         print(f'Default data:{movies}')
-        for i in range(len(movies)):
-            movies[i]['genre_ids'][0] = 22
-        print(f'Changed data: {movies}')
+        for i in range(len(movies_copy)):
+            movies_copy[i]['genre_ids'][0] = 22
+        print(f'Changed data:{movies_copy}')
 
     def print_collection_of_structures(self):
         url = f'https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&sort_by=popularity.desc&page={1}'
         response = re.get(url, headers=self.headers)
         information = response.json()
         movies = information['results']
-        example = {'Title': '',
-                   'Popularity': 0,
-                   'Score': 0,
-                   'Last_day_in_cinema': ''}
-
         collection_of_structures = []
-
         for i in range(len(movies)):
+            example = {'Title': '',
+                       'Popularity': 0,
+                       'Score': 0,
+                       'Last_day_in_cinema': ''}
             example['Title'] = movies[i]['original_title']
             example['Popularity'] = round(movies[i]['popularity'], 1)
             example['Score'] = int(movies[i]['vote_average'])
@@ -163,13 +169,13 @@ print('\nTask 5:')
 user.find_movie('human')
 
 print('\nTask 6:')
-
+user.print_genres()
 
 print('\nTask 7:')
 user.delete_movies_with_genre(28)
 
 print('\nTask 8:')
-user.get_most_popular_genre()
+# user.get_most_popular_genre()
 
 print('\nTask 9:')
 user.group_movies(16)
@@ -181,8 +187,8 @@ print('\nTask 11:')
 data = user.print_collection_of_structures()
 
 print('\nTask 12:')
-file_path = 'D:/'
-with open(file_path, 'w', newline='') as csv_file:
-    writer = csv.writer(csv_file)
-    writer.writerow(['Data'])
-    writer.writerows(data)
+# file_path = 'D:/'
+# with open(file_path, 'w', newline='') as csv_file:
+#     writer = csv.writer(csv_file)
+#     writer.writerow(['Data'])
+#     writer.writerows(data)
