@@ -5,6 +5,7 @@ from collections import Counter
 import time as t
 from datetime import timedelta, date
 
+
 class CinemaUser:
     HEADERS = {
         "accept": "application/json",
@@ -35,19 +36,16 @@ class CinemaUser:
         return max(self.data, key=lambda x: x['popularity'])['original_title']
 
     def find_movie(self, find_text):
-        necessary_movies = [film['original_title'] for film in self.data if film['overview'].find(find_text) > 0]
-        return necessary_movies
+        return [film['original_title'] for film in self.data if film['overview'].find(find_text) > 0]
 
     def print_genres(self):
-        genre_list = set(genre for film in self.data for genre in film['genre_ids'])
-        return genre_list
+        return set(genre for film in self.data for genre in film['genre_ids'])
 
     def delete_movies_with_genre(self, deleted_genre):
         return [film['original_title'] for film in self.data if deleted_genre not in film['genre_ids']]
 
     def get_most_popular_genre(self):
-        genres_popularity = [genre for film in self.data for genre in film['genre_ids']]
-        return Counter(genres_popularity).most_common(1)[0][0]
+        return Counter([genre for film in self.data for genre in film['genre_ids']]).most_common(1)[0][0]
 
     def group_movies(self):
         common_movies = [{film['original_title'], movie['original_title']} for i, film in enumerate(self.data) for genre in film['genre_ids'] for movie in self.data[i+1::] if genre in movie['genre_ids']]
@@ -77,7 +75,7 @@ class CinemaUser:
             example['Score'] = int(film['vote_average'])
             date_str = film['release_date'].split('-')
             date_int = [int(element) for element in date_str]
-            release_date = date(date_int[0], date_int[1], date_int[2]) + timedelta(weeks=6, days=2)
+            release_date = date(date_int[0], date_int[1], date_int[2]) + timedelta(weeks=10, days=4)
             example['Last_day_in_cinema'] = release_date.strftime('%Y-%m-%d')
             self.collection_of_structures.append(example)
         return self.collection_of_structures
@@ -93,11 +91,12 @@ def change_genre_id(movie):
     movie['genre_ids'][0] = 22
     return movie
 
+
 print('Task 1:')
 user = CinemaUser(1)
 
 print('\nTask 2:')
-user.get_all_data_from_page()
+print(user.get_all_data_from_page())
 
 print('\nTask 3:')
 print(user.get_data_about_movies(3, 19, 4))
