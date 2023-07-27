@@ -2,14 +2,18 @@ import requests as re
 import csv
 import copy
 from collections import Counter
-import time as t
-from datetime import timedelta, date, datetime
+from datetime import timedelta, datetime
 
 
 class CinemaUser:
+    AUTHORIZATION_FIRST_PART = 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzMTI3NGFm' \
+                               'YTRlNTUyMjRjYzRlN2Q0NmNlMTNkOTZjOSIsInN1YiI6IjVkNmZhMWZmNzdjM'
+    AUTHORIZATION_SECOND_PART = 'DFmMDAxMDU5NzQ4OSIsInNjb3BlcyI6WyJhcGlfcmVhZCJd' \
+                                'LCJ2ZXJzaW9uIjoxfQ.lbpgyXlOXwrbY0mUmP-zQpNAMCw_h-oaudAJB6Cn5c8'
+    AUTHORIZATION = AUTHORIZATION_FIRST_PART + AUTHORIZATION_SECOND_PART
     HEADERS = {
         'accept': 'application/json',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIzMTI3NGFmYTRlNTUyMjRjYzRlN2Q0NmNlMTNkOTZjOSIsInN1YiI6IjVkNmZhMWZmNzdjMDFmMDAxMDU5NzQ4OSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.lbpgyXlOXwrbY0mUmP-zQpNAMCw_h-oaudAJB6Cn5c8'
+        'Authorization': AUTHORIZATION
     }
 
     def __init__(self, number_of_pages):
@@ -18,7 +22,8 @@ class CinemaUser:
         self.fetch_data_from_desired_pages(number_of_pages)
 
     def get_response(self, number_of_page):
-        url = f'https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&sort_by=popularity.desc&page={number_of_page}'
+        url = f'https://api.themoviedb.org/3/discover/movie?include_' \
+              f'adult=false&include_video=false&sort_by=popularity.desc&page={number_of_page}'
         return re.get(url, headers=self.HEADERS)
 
     def fetch_data_from_desired_pages(self, end):
@@ -42,20 +47,22 @@ class CinemaUser:
         return tuple({genre for film in self.data for genre in film['genre_ids']})
 
     def delete_movies_with_genre(self, deleted_genre):
-        return [film['original_title'] for film in self.data if deleted_genre not in film['genre_ids']]
+        # return [film['original_title'] for film in self.data if deleted_genre not in film['genre_ids']]
+        return list(filter(lambda film: deleted_genre not in film['genre_ids'], self.data))
 
     def get_most_popular_genre(self):
         return Counter([genre for film in self.data for genre in film['genre_ids']]).most_common(1)[0][0]
 
     def group_movies(self):
-        common_movies = [(film['original_title'], movie['original_title'])
+        common_movies = [(film['original_title'], movie_info['original_title'])
                          for i, film in enumerate(self.data)
                          for genre in film['genre_ids']
-                         for movie in self.data
-                         if genre in movie['genre_ids']]
+                         for movie_info in self.data
+                         if genre in movie_info['genre_ids']]
         return common_movies
 
-    def change_genre_id(self, movie):
+    @staticmethod
+    def change_genre_id(movie):
         movie['genre_ids'][0] = 22
         return movie
 
@@ -67,12 +74,14 @@ class CinemaUser:
             example = {'Title': film['original_title'],
                        'Popularity': round(film['popularity'], 1),
                        'Score': int(film['vote_average']),
-                       'Last_day_in_cinema': (datetime.strptime(film['release_date'], "%Y-%m-%d") + timedelta(weeks=10, days=4)).strftime('%Y-%m-%d')}
+                       'Last_day_in_cinema': (datetime.strptime(film['release_date'], "%Y-%m-%d")
+                                              + timedelta(weeks=10, days=4)).strftime('%Y-%m-%d')}
             self.collection_of_structures.append(example)
+            self.collection_of_structures.sort(key=lambda x: (x['Score'], x['Popularity']))
         return self.collection_of_structures
 
     def write_collection_to_file(self, path):
-        with open(path, 'w', newline='') as csv_file:
+        with open(path, 'w', newline='', encoding='utf-8') as csv_file:
             fieldnames = ['Title', 'Popularity', 'Score', 'Last_day_in_cinema']
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             writer.writeheader()
@@ -81,7 +90,7 @@ class CinemaUser:
 
 
 print('Task 1:')
-user = CinemaUser(1)
+user = CinemaUser(3)
 
 print('\nTask 2:')
 print(user.get_all_data_from_page())
@@ -112,8 +121,8 @@ print(f'{user.get_original_and_copy_data()[0]}\n{user.get_original_and_copy_data
 
 print('\nTask 11:')
 data = user.print_collection_of_structures()
-for movie in data:
-    print(movie)
+for element in data:
+    print(element)
 
 print('\nTask 12:')
 user.write_collection_to_file('file.csv')
