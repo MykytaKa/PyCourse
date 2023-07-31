@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from collections import Counter
 import shutil
 
-URL = 'https://randomuser.me/api/?results=5000&format=csv'
+URL = 'https://randomuser.me/api/?results=2&format=csv&seed=mykyta'
 
 
 def fetch_csv_file():
@@ -123,7 +123,7 @@ def add_new_fields(csv_data):
         user_info['current_time'] = rearrange_user_time_data(user_info['location.timezone.offset'])
 
         # CHANGING VALUES IN FIELD 'name.title'
-        user_info['name.title'] = rearrange_name_data(user_info)
+        user_info['name.title'] = rearrange_name_data(user_info['name.title'])
 
         # CHANGING VALUES IN FIELD 'dob.date'
         user_info['dob.date'] = rearrange_datetime_data(user_datetime_data=user_info['dob.date'],
