@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from collections import Counter
 import shutil
 
-URL = 'https://randomuser.me/api/?results=2&format=csv&seed=mykyta'
+URL = 'https://randomuser.me/api/?results=100&format=csv&seed=mykyta'
 
 
 def fetch_csv_file():
@@ -39,7 +39,7 @@ def read_data_from_csv_file(csv_file_path):
     :return: list, data that was read from the csv file
     """
     with open(csv_file_path, 'r', encoding='utf-8') as csv_file:
-        return [row for row in csv.DictReader(csv_file)]
+        return list(csv.DictReader(csv_file))
 
 
 def filter_data(csv_data, filtering_gender, filtering_number_of_rows):
@@ -96,16 +96,9 @@ def rearrange_user_time_data(user_timezone_offset):
     :return: str, current user time
     """
     user_timezone = user_timezone_offset.split(':')
-    hours = int(user_timezone[0][1:]) \
-        if user_timezone[0][0] == '+' or user_timezone[0][0] == '-' \
-        else int(user_timezone[0][0:])
+    hours = int(user_timezone[0])
     minutes = int(user_timezone[1])
-    if user_timezone[0][0] == '-':
-        return (datetime.now(timezone.utc) - timedelta(hours=hours, minutes=minutes)).strftime('%Y-%m-%d %H:%M:%S')
-    elif user_timezone[0][0] == '+':
-        return (datetime.now(timezone.utc) + timedelta(hours=hours, minutes=minutes)).strftime('%Y-%m-%d %H:%M:%S')
-    else:
-        return (datetime.now(timezone.utc)).strftime('%Y-%m-%d %H:%M:%S')
+    return (datetime.now(timezone.utc) + timedelta(hours=hours, minutes=minutes)).strftime('%Y-%m-%d %H:%M:%S')
 
 
 def add_new_fields(csv_data):
@@ -116,20 +109,11 @@ def add_new_fields(csv_data):
     :return: list, data with added and changed values
     """
     for i, user_info in enumerate(csv_data, start=1):
-        # ADDING FIELD 'global_index'
         user_info['global_index'] = i
-
-        # ADDING FIELD 'current_time'
         user_info['current_time'] = rearrange_user_time_data(user_info['location.timezone.offset'])
-
-        # CHANGING VALUES IN FIELD 'name.title'
         user_info['name.title'] = rearrange_name_data(user_info['name.title'])
-
-        # CHANGING VALUES IN FIELD 'dob.date'
         user_info['dob.date'] = rearrange_datetime_data(user_datetime_data=user_info['dob.date'],
                                                         string_format='%m/%d/%Y')
-
-        # CHANGING VALUES IN FIELD 'register.date'
         user_info['registered.date'] = rearrange_datetime_data(user_datetime_data=user_info['registered.date'],
                                                                string_format='%m-%d-%Y, %H:%M:%S')
     return csv_data
@@ -159,32 +143,6 @@ def create_folder_if_not_exist(destination_folder_path):
         logging.info(f'Directory {destination_folder_path} was successfully created')
 
 
-def change_work_directory(destination_folder_path):
-    """
-    Change the current working directory to the specified destination_folder_path.
-
-    :param destination_folder_path: str, the path of the folder to set as the new working directory.
-    :return: tuple, containing the old working directory path and the new working directory path.
-    """
-    old_work_directory = os.getcwd()
-    os.chdir(destination_folder_path)
-    new_work_directory = destination_folder_path
-    return old_work_directory, new_work_directory
-
-
-def move_csv_file(old_dir, new_dir, csv_file_name):
-    """
-    Move a CSV file from the old directory to the new directory.
-
-    :param old_dir: str, the path of the current directory containing the CSV file.
-    :param new_dir: str, the path of the destination directory where the CSV file will be moved.
-    :param csv_file_name: str, the name of the CSV file to be moved.
-    :return: None
-    """
-
-    os.rename(os.path.join(old_dir, csv_file_name), os.path.join(new_dir, csv_file_name))
-
-
 def rearrange_data(old_csv_data):
     """
     Rearrange data into format 'decades : {countries : [users_data]}'
@@ -212,13 +170,13 @@ def create_file_name(rearranged_data, folder_decade, folder_country):
     :param folder_country: str, the name of the folder representing the country.
     :return: str, the name of the CSV file based on the provided data.
     """
-    users_age = [int(user['dob.age']) for user in rearranged_data[folder_decade][folder_country]]
-    users_registered_age = [int(user['registered.age']) for user in rearranged_data[folder_decade][folder_country]]
-    users_id_name = [user['id.name'] for user in rearranged_data[folder_decade][folder_country]]
 
-    return f'{max(users_age)}_' \
-           f'{sum(users_registered_age) / len(users_registered_age)}_' \
-           f'{Counter(users_id_name).most_common(1)[0][0]}'
+    users_data = [(int(user['dob.age']), int(user['registered.age']), user['id.name']) for user in
+                  rearranged_data[folder_decade][folder_country]]
+
+    return f'{max(users_data, key=lambda user_info: user_info[0])[0]}_' \
+           f'{sum([element[1] for element in users_data]) / len(users_data)}_' \
+           f'{Counter([element[2] for element in users_data]).most_common(1)[0][0]}'
 
 
 def create_sub_folders(rearranged_data):
@@ -236,9 +194,7 @@ def create_sub_folders(rearranged_data):
             os.makedirs(country_path)
 
             csv_file_name = create_file_name(rearranged_data, decade, country)
-
             csv_file_path = os.path.join(country_path, csv_file_name)
-
             write_new_data_to_csv(csv_path=csv_file_path + '.csv', csv_data=rearranged_data[decade][country])
 
 
@@ -251,21 +207,22 @@ def remove_data_before_60_th():
             shutil.rmtree(os.path.join(os.getcwd(), dec))
 
 
-def log_folder_structure(destination_folder):
+def log_folder_structure(destination_folder, user_logger):
     """
     Log the data structure that is in destination folder
 
     :param destination_folder: str, path to destination folder
+    :param user_logger: Logger, a custom logger that allows you to record logged information
     """
     for root, dirs, files in os.walk(destination_folder):
         level = root.replace(destination_folder, '').count(os.sep)
         indent = ' ' * 4 * level
-        logging.info(f'{indent}{os.path.basename(root)}/')
+        user_logger.info(f'{indent}{os.path.basename(root)}/')
         sub_indent = ' ' * 4 * (level + 1)
         for f in files:
-            logging.info(f'{sub_indent}{f} (file)')
+            user_logger.info(f'{sub_indent}{f} (file)')
         for d in dirs:
-            logging.info(f'{sub_indent}{d} (folder)')
+            user_logger.info(f'{sub_indent}{d} (folder)')
 
 
 def archive_destination_folder(destination_folder_name):
@@ -337,11 +294,12 @@ def main():
     create_folder_if_not_exist(args.destination_folder)
 
     # CHANGING WORK DIRECTORY
-    old_work_directory, new_work_directory = change_work_directory(args.destination_folder)
+    old_work_directory = os.getcwd()
+    os.chdir(args.destination_folder)
     logger.info('Work directory was successfully changed')
 
     # MOVING CSV FILE TO DESTINATION FOLDER
-    move_csv_file(old_work_directory, new_work_directory, file_name)
+    os.rename(os.path.join(old_work_directory, file_name), os.path.join(args.destination_folder, file_name))
     logger.info(f'File {file_name}.csv was successfully moved into folder {args.destination_folder}')
 
     # REARRANGING THE DATA
@@ -358,7 +316,7 @@ def main():
 
     # LOGGING THE FOLDER STRUCTURE
     logger.info('Data structure:')
-    log_folder_structure(args.destination_folder)
+    log_folder_structure(args.destination_folder, logger)
 
     # ARCHIVING DESTINATION FOLDER
     archive_destination_folder(args.destination_folder.split('/')[-2])
