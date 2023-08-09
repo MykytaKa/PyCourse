@@ -98,12 +98,10 @@ def get_bank_with_the_biggest_capital(cursor):
         bank_id, account_currency, account_amount = row
         converted_amount = account_amount * currency[account_currency]
         bank_name = list(cursor.execute(f'SELECT name FROM Bank WHERE id = {bank_id}'))[0]
-        if bank_name not in banks_capital.keys():
-            banks_capital[bank_name] = converted_amount
-        else:
-            banks_capital[bank_name] += converted_amount
+        banks_capital.setdefault(bank_name, 0)
+        banks_capital[bank_name] += converted_amount
     logger.info("Capital retrieval completed")
-    return banks_capital, max(banks_capital)[0]
+    return max(banks_capital)[0]
 
 
 @establish_connection
@@ -138,9 +136,13 @@ def get_bank_with_highest_unique_outbound_users(cursor):
     :return: tuple: A tuple containing the bank name and the count of unique outbound users.
     """
     logger.info("Retrieving bank with the highest unique outbound users")
-    transactions_data = [i for i in list(cursor.execute('SELECT Bank_sender_name, Account_sender_id '
-                                                        'FROM Transactions'))]
-    return Counter(transactions_data).most_common(1)[0][0][0], Counter(transactions_data).most_common(1)[0][1]
+    transactions_data = set([i for i in list(cursor.execute('SELECT Bank_sender_name, Account_sender_id '
+                                                        'FROM Transactions'))])
+    bank_frequency = {}
+    for data in transactions_data:
+        bank_frequency.setdefault(data[0], 0)
+        bank_frequency[data[0]] += 1
+    return Counter(bank_frequency).most_common(1)[0][0]
 
 
 def filter_by_datetime_transactions(transaction):
@@ -183,3 +185,6 @@ def get_user_last_three_months_transactions(user_id):
     conn.close()
     logger.info("Transaction retrieval completed")
     return transactions
+
+
+print(get_bank_with_highest_unique_outbound_users())
