@@ -137,7 +137,7 @@ def get_bank_with_highest_unique_outbound_users(cursor):
     """
     logger.info("Retrieving bank with the highest unique outbound users")
     transactions_data = set([i for i in list(cursor.execute('SELECT Bank_sender_name, Account_sender_id '
-                                                        'FROM Transactions'))])
+                                                            'FROM Transactions'))])
     bank_frequency = {}
     for data in transactions_data:
         bank_frequency.setdefault(data[0], 0)
