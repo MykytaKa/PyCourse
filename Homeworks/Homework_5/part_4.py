@@ -1,39 +1,13 @@
 import random
 from datetime import datetime, timezone, timedelta
-import sqlite3
-import freecurrencyapi
-from collections import Counter
-import logging
+from utils import establish_db_connection, get_logger, get_currency
+from itertools import groupby
+
+logger = get_logger()
 
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-def establish_connection(func):
-    """
-    A decorator that establishes a connection to the SQLite database, executes the wrapped
-    function, and then commits and closes the connection.
-
-    :param: func (function): The function to be wrapped.
-    :return: function: The wrapper function.
-    """
-    def wrapper():
-        logger.info("Establishing database connection")
-        conn = sqlite3.connect('data.db')
-        cursor = conn.cursor()
-
-        result = func(cursor)
-
-        conn.commit()
-        conn.close()
-        logger.info("Database connection closed")
-        return result
-
-    return wrapper
-
-
-def randomly_assign_discounts(num_users):
+@establish_db_connection
+def randomly_assign_discounts(cursor):
     """
     Randomly assigns discounts to a specified number of users.
 
@@ -41,31 +15,18 @@ def randomly_assign_discounts(num_users):
     :return: dict: A dictionary containing user IDs as keys and assigned discounts as values.
     :raises: ValueError: If the number of users is too high or negative.
     """
+    num_users = random.randint(1, 10)
     logger.info(f"Randomly assigning discounts to {num_users} users")
-    if num_users > 10:
-        raise ValueError('Too many users have been selected')
-    if num_users < 0:
-        raise ValueError('Amount of user\'s can not be negative')
-
-    conn = sqlite3.connect('data.db')
-    cursor = conn.cursor()
 
     credits_discount = [25, 30, 50]
-    user_with_discounts = {}
     user_ids = [i[0] for i in cursor.execute('SELECT Id FROM User')]
     user_ids = random.sample(user_ids, num_users)
-
-    for user_id in user_ids:
-        discount = random.choice(credits_discount)
-        user_with_discounts[user_id] = discount
-
-    conn.commit()
-    conn.close()
+    user_with_discounts = {user_id: random.choice(credits_discount) for user_id in user_ids}
     logger.info("Discount assignment completed")
     return user_with_discounts
 
 
-@establish_connection
+@establish_db_connection
 def get_debtors_full_name(cursor):
     """
     Retrieves the full names of users with negative account balances.
@@ -78,7 +39,7 @@ def get_debtors_full_name(cursor):
             for debtor_id in debtors_id]
 
 
-@establish_connection
+@establish_db_connection
 def get_bank_with_the_biggest_capital(cursor):
     """
     Retrieves the bank with the highest capital in converted currency.
@@ -87,8 +48,7 @@ def get_bank_with_the_biggest_capital(cursor):
                     with the highest capital.
     """
     logger.info("Retrieving bank with the highest capital")
-    client = freecurrencyapi.Client('fca_live_oEQfakDlvq3ygAFqK36LYvswprqzEXu6MkQ3EmVV')
-    currency = client.latest()['data']
+    currency = get_currency()
     banks_capital = {}
 
     cursor.execute('SELECT Bank_id, Currency, Amount FROM Account')
@@ -104,7 +64,7 @@ def get_bank_with_the_biggest_capital(cursor):
     return max(banks_capital)[0]
 
 
-@establish_connection
+@establish_db_connection
 def get_bank_with_the_oldest_client(cursor):
     """
     Retrieves the name of the bank with the oldest client.
@@ -112,23 +72,15 @@ def get_bank_with_the_oldest_client(cursor):
     :return: str: The name of the bank with the oldest client.
     """
     logger.info("Retrieving bank with the oldest client")
-    account_data = [i for i in list(cursor.execute('SELECT User_id, Bank_id FROM Account'))]
-    bank_id_with_the_oldest_client = account_data[0][1]
-    the_oldest_client_birth_day = datetime.strptime(list(cursor.execute(f'SELECT Birth_day FROM User '
-                                                                        f'WHERE Id = {account_data[0][0]}'))[0][0],
-                                                    '%d-%m-%Y')
-    for user_id, bank_id in account_data:
-        current_account_birth_day = datetime.strptime(list(cursor.execute(f'SELECT Birth_day FROM User '
-                                                                          f'WHERE Id = {user_id}'))[0][0],
-                                                      '%d-%m-%Y')
-        if the_oldest_client_birth_day > current_account_birth_day:
-            the_oldest_client_birth_day = current_account_birth_day
-            bank_id_with_the_oldest_client = bank_id
-    logger.info("Bank with the oldest client retrieved")
-    return list(cursor.execute(f'SELECT name FROM Bank WHERE id = {bank_id_with_the_oldest_client}'))[0][0]
+    clients_birth_day = list(cursor.execute(f'SELECT id, Birth_day FROM User '))
+    the_oldest_user = min(clients_birth_day, key=lambda client: datetime.strptime(client[1], '%d-%m-%Y'))
+    cursor.execute(f'SELECT Bank_id FROM Account WHERE User_id = {the_oldest_user[0]}')
+    the_oldest_user_bank_id = cursor.fetchone()[0]
+    cursor.execute(f'SELECT name FROM Bank WHERE id = {the_oldest_user_bank_id}')
+    return cursor.fetchone()[0]
 
 
-@establish_connection
+@establish_db_connection
 def get_bank_with_highest_unique_outbound_users(cursor):
     """
     Retrieves the bank with the highest number of unique users with outbound transactions.
@@ -138,11 +90,8 @@ def get_bank_with_highest_unique_outbound_users(cursor):
     logger.info("Retrieving bank with the highest unique outbound users")
     transactions_data = set([i for i in list(cursor.execute('SELECT Bank_sender_name, Account_sender_id '
                                                             'FROM Transactions'))])
-    bank_frequency = {}
-    for data in transactions_data:
-        bank_frequency.setdefault(data[0], 0)
-        bank_frequency[data[0]] += 1
-    return Counter(bank_frequency).most_common(1)[0][0]
+    bank_frequency = {key: list(group) for key, group in groupby(transactions_data, lambda transaction: transaction[0])}
+    return max(bank_frequency), len(bank_frequency[max(bank_frequency)])
 
 
 def filter_by_datetime_transactions(transaction):
@@ -159,13 +108,11 @@ def filter_by_datetime_transactions(transaction):
     temp_date = datetime.strftime(time_delta, '%Y-%m-%d %H:%M:%S')
     delta_time = datetime.strptime(temp_date, '%Y-%m-%d %H:%M:%S')
 
-    if transaction_datetime > delta_time:
-        return True
-    else:
-        return False
+    return transaction_datetime > delta_time
 
 
-def get_user_last_three_months_transactions(user_id):
+@establish_db_connection
+def get_user_last_three_months_transactions(cursor, user_id):
     """
     Retrieves a user's transactions from the last three months.
 
@@ -174,17 +121,13 @@ def get_user_last_three_months_transactions(user_id):
     :return: list: A list of transactions within the last three months for the given user.
     """
     logger.info(f"Retrieving transactions for user {user_id} from the last three months")
-    conn = sqlite3.connect('data.db')
-    cursor = conn.cursor()
-
-    transactions = [i for i in list(cursor.execute('SELECT * FROM Transactions'))]
-    transactions = [transaction for transaction in transactions
-                    if transaction[2] == user_id or transaction[4] == user_id]
+    transactions = [transaction for transaction in list(cursor.execute(f'SELECT * FROM Transactions '
+                                                                       f'WHERE Account_sender_id = {user_id} OR '
+                                                                       f'Account_receiver_id = {user_id}'))]
     transactions = list(filter(filter_by_datetime_transactions, transactions))
-    conn.commit()
-    conn.close()
+
     logger.info("Transaction retrieval completed")
     return transactions
 
 
-print(get_bank_with_highest_unique_outbound_users())
+print(randomly_assign_discounts())
