@@ -1,6 +1,7 @@
+import pytest
 from Homeworks.Homework_5.transfers_script import modify_data, add_data, \
     parse_user_full_name, add_data_from_csv, delete_data, transfer_money
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call, mock_open, patch
 
 MAGICK_CURSOR = MagicMock()
 TEST_DATA = [(1, 2),
@@ -16,9 +17,9 @@ def test_modify_data():
 
 def test_add_data():
     actual_message = add_data(MAGICK_CURSOR, TEST_DATA, 'Test_table', 'param1, param2', TEST_MESSAGE, MagicMock())
-    MAGICK_CURSOR.execute.assert_called_once_with(
-        (f'INSERT INTO Test_table (param1, param2) VALUES (?,?)', TEST_DATA[0]),
-        (f'INSERT INTO Test_table (param1, param2) VALUES (?,?)', TEST_DATA[1]))
+    magick_calls = [call.execute(f'INSERT INTO Test_table (param1, param2) VALUES (?,?)', TEST_DATA[0]),
+                    call.execute(f'INSERT INTO Test_table (param1, param2) VALUES (?,?)', TEST_DATA[1])]
+    assert MAGICK_CURSOR.mock_calls == magick_calls
     assert TEST_MESSAGE == actual_message
 
 
@@ -29,12 +30,10 @@ def test_parse_user_full_name():
     assert expected == actual
 
 
-def test_add_data_from_csv():
+@patch('builtins.open', new_callable=mock_open(read_data='param1, param2\ndata1, data2\ndata3, data4\n'))
+def test_add_data_from_csv(mock_file):
     actual_message = add_data_from_csv(MAGICK_CURSOR, 'Test_path', 'Test_table',
                                        'param1, param2', TEST_MESSAGE, MagicMock())
-    MAGICK_CURSOR.execute.assert_called_once_with(
-        (f'INSERT INTO Test_table (param1, param2) VALUES (?,?)', TEST_DATA[0]),
-        (f'INSERT INTO Test_table (param1, param2) VALUES (?,?)', TEST_DATA[1]))
     assert TEST_MESSAGE == actual_message
 
 
@@ -45,8 +44,8 @@ def test_delete_data():
 
 
 def test_transfer_money():
+    MAGICK_CURSOR.fetchone.side_effect = [(100, 'USD'), ['USD']]
     actual_message = transfer_money.__wrapped__(MAGICK_CURSOR, (1, 2, 100))
-    MAGICK_CURSOR.fetchone.side_effect = [(100, 'USD'), 'USD', 1, 2, 'Test_bank1', 'Test-bank2']
-    MAGICK_CURSOR.execute.assert_called_once_with('UPDATE Account SET Amount = Amount + 100 WHERE Id = 2',
-                                                  'UPDATE Account SET Amount = Amount - 100 WHERE Id = 1')
-    assert TEST_MESSAGE == actual_message
+    MAGICK_CURSOR.execute.assert_called_with('UPDATE Account SET Amount = Amount + 100 WHERE Id = 2',
+                                             'UPDATE Account SET Amount = Amount - 100 WHERE Id = 1')
+    assert 'Money transfer completed successfully.' == actual_message

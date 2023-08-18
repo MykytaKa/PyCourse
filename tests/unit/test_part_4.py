@@ -28,7 +28,7 @@ def test_get_debtors_full_name():
 
 def test_get_bank_with_the_biggest_capital():
     MAGICK_CURSOR.fetchall.return_value = [(1, 'EUR', 1), (2, 'EUR', 2)]
-    MAGICK_CURSOR.execute.side_effect = [('Test1',), ('Test2',)]
+    MAGICK_CURSOR.execute.side_effect = [None, [('Test1',)], [('Test2',)]]
     actual = get_bank_with_the_biggest_capital.__wrapped__(MAGICK_CURSOR)
     expected = 'Test2'
     assert expected == actual
