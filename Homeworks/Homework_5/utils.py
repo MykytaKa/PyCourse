@@ -24,9 +24,6 @@ def establish_db_connection(func):
         else:
             result = func(cursor, args)
 
-        logger = get_logger()
-        logger.info(result)
-
         conn.commit()
         conn.close()
         return result

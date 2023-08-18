@@ -1,6 +1,6 @@
 import random
 from datetime import datetime, timezone, timedelta
-from utils import establish_db_connection, get_logger, get_currency
+from Homeworks.Homework_5.utils import establish_db_connection, get_logger, get_currency
 from itertools import groupby
 
 logger = get_logger()
@@ -128,6 +128,3 @@ def get_user_last_three_months_transactions(cursor, user_id):
 
     logger.info("Transaction retrieval completed")
     return transactions
-
-
-print(randomly_assign_discounts())

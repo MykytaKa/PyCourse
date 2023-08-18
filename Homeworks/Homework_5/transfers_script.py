@@ -1,7 +1,8 @@
 import csv
+import sqlite3
 from datetime import datetime, timezone
-from validations import validate_bank_data, validate_user_data, validate_account_data
-from utils import establish_db_connection, get_logger, get_currency
+from Homeworks.Homework_5.validations import validate_bank_data, validate_user_data, validate_account_data
+from Homeworks.Homework_5.utils import establish_db_connection, get_logger, get_currency
 
 logger = get_logger()
 
@@ -174,8 +175,8 @@ def modify_data(cursor, data, table_name, params_insert, return_message, vld_fnc
     """
     vld_fnc(data[:-1])
     params = params_insert.split(',')
-    params_insert_string = [f'{param} = ?, ' for param in params[1:]]
-    params_insert_string = ''.join(params_insert_string)[:-2]
+    params_insert_string = [f'{param.strip()} = ?' for param in params[1:]]
+    params_insert_string = ', '.join(params_insert_string)
     cursor.execute(f'UPDATE {table_name} SET {params_insert_string} WHERE {params[0]} = ?', data)
     return return_message
 
