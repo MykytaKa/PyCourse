@@ -20,7 +20,7 @@ jobs:
           pip install prospector[with_everything] pytest
       - name: linter
         run:
-          prospector --profile .prospector.yaml
+          prospector
       - name: unit-tests
         run:
           pytest
