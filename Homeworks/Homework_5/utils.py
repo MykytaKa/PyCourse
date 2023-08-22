@@ -3,6 +3,9 @@ import sqlite3
 from functools import wraps
 import freecurrencyapi
 
+SELECT_COMMAND = 'SELECT {} FROM {} WHERE Id = {}'
+UPDATE_COMMAND = 'UPDATE Account SET Amount = Amount {} {} WHERE Id = {}'
+
 
 def establish_db_connection(func):
     """
@@ -17,12 +20,10 @@ def establish_db_connection(func):
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
 
-        if args == ():
-            result = func(cursor)
-        elif len(args) == 1 and type(args[0]) is not tuple:
+        if len(args) == 1 and type(args[0]) is not tuple:
             result = func(cursor, args[0])
         else:
-            result = func(cursor, args)
+            result = func(cursor, *args)
 
         conn.commit()
         conn.close()
