@@ -1,10 +1,24 @@
+"""
+The module contains utility functions for database connection management, logging, and currency retrieval.
+
+It defines functions and a decorator to manage the SQLite database connection lifecycle, configure logging
+for the module, and retrieve the latest currency data using the Free Currency API.
+
+Functions and Decorator:
+- establish_db_connection(func): A decorator that establishes a connection to the SQLite database, executes
+  the wrapped function, and then commits and closes the connection.
+
+Utility Functions:
+- get_logger(): Creates and configures a logger for the module.
+- get_currency(): Retrieves the latest currency data using the Free Currency API.
+
+Note: These functions and the decorator are used to streamline database operations, handle logging, and
+retrieve currency data, respectively, across the module.
+"""
 import logging
 import sqlite3
 from functools import wraps
 import freecurrencyapi
-
-SELECT_COMMAND = 'SELECT {} FROM {} WHERE Id = {}'
-UPDATE_COMMAND = 'UPDATE Account SET Amount = Amount {} {} WHERE Id = {}'
 
 
 def establish_db_connection(func):
@@ -20,7 +34,7 @@ def establish_db_connection(func):
         conn = sqlite3.connect('data.db')
         cursor = conn.cursor()
 
-        if len(args) == 1 and type(args[0]) is not tuple:
+        if len(args) == 1 and not isinstance(args[0], tuple):
             result = func(cursor, args[0])
         else:
             result = func(cursor, *args)
