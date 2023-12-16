@@ -8,4 +8,4 @@ class Seat:
     number_of_row: int
     position_in_row: str
     seat_id: str
-    passenger: Passenger
+    passenger: Passenger = None
