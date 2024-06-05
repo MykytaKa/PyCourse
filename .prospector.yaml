@@ -1,0 +1,50 @@
+inherits:
+    - strictness_high
+
+
+ignore:
+  - venv
+  - tests
+  - .pytest_cache/
+  - Homework_1
+  - Homework_2
+  - Homework_3
+  - 001__initial_db_setup.py
+  - main.py
+  - class_work.py
+
+
+output-format: grouped
+
+test-warnings: true
+member-warnings: true
+doc-warnings: true
+
+autodetect: false
+
+uses:
+  - numpy
+
+pep8:
+    run: true
+    options:
+        max-line-length: 120
+
+pylint:
+    run: true
+    options:
+        max-line-length: 120
+        ignored-classes: pytest
+    disable:
+        - C0302
+        - W0142
+        - W0141
+        - too-many-arguments
+        - no-else-raise
+
+pydocstyle:
+    run: true
+    disable:
+        - D212
+        - D415
+        - D205

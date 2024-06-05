@@ -1,11 +1,12 @@
-import argparse as argp
-import csv
-import requests as re
-import logging
 import os
-from datetime import datetime, timedelta, timezone
-from collections import Counter
+import csv
 import shutil
+import logging
+import requests as re
+import argparse as argp
+from collections import Counter
+from datetime import datetime, timedelta, timezone
+
 
 URL = 'https://randomuser.me/api/?results=100&format=csv&seed=mykyta'
 
@@ -55,8 +56,7 @@ def filter_data(csv_data, filtering_gender, filtering_number_of_rows):
         return list(filter(lambda row: row['gender'] == filtering_gender, csv_data))
     elif filtering_number_of_rows is not None:
         return csv_data[:filtering_number_of_rows]
-    else:
-        return csv_data
+    return csv_data
 
 
 def rearrange_datetime_data(user_datetime_data, string_format):
